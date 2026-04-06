@@ -190,6 +190,9 @@ interface AppState {
 
   selectedSessionId: string | null;
 
+  // Session search
+  sessionSearch: string;
+
   // Events
   allEvents: WatchmanEvent[];      // Unfiltered events for filter discovery
   events: WatchmanEvent[];         // Filtered events for display
@@ -235,6 +238,7 @@ interface AppActions {
   fetchSessionStats: (sessionId: string) => Promise<void>;
   clearError: () => void;
   setEventLimitPreference: (limit: EventLimitPreference) => Promise<void>;
+  setSessionSearch: (search: string) => void;
 }
 
 type AppStore = AppState & AppActions;
@@ -259,6 +263,7 @@ const initialState: AppState = {
     limit: 5,
   },
   selectedSessionId: null,
+  sessionSearch: '',
   allEvents: [],
   events: [],
   hasMore: false,
@@ -297,15 +302,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
       error: null
     });
 
+    const { sessionSearch } = get();
+
     try {
       // Fetch active and closed sessions in parallel
       const [activeResult, closedResult] = await Promise.all([
-        api.fetchSessions({ status: 'active' }),
+        api.fetchSessions({ status: 'active', search: sessionSearch || undefined }),
         api.fetchSessions({
           status: 'stopped',
           limit: 5,
           sortBy: 'stoppedAt',
-          sortOrder: 'desc'
+          sortOrder: 'desc',
+          search: sessionSearch || undefined,
         }),
       ]);
 
@@ -338,7 +346,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   loadMoreClosedSessions: async () => {
-    const { closedSessionsPagination, isLoadingMoreClosedSessions } = get();
+    const { closedSessionsPagination, isLoadingMoreClosedSessions, sessionSearch } = get();
 
     if (isLoadingMoreClosedSessions || !closedSessionsPagination.hasMore) {
       return;
@@ -353,6 +361,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         offset: closedSessionsPagination.offset,
         sortBy: 'stoppedAt',
         sortOrder: 'desc',
+        search: sessionSearch || undefined,
       });
 
       set((state) => ({
@@ -592,5 +601,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (selectedSessionId) {
       await get().fetchEvents(selectedSessionId, true);
     }
+  },
+
+  setSessionSearch: (search: string) => {
+    set({ sessionSearch: search });
+    get().fetchSessions();
   },
 }));

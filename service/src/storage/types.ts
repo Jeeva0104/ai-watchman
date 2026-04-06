@@ -100,6 +100,7 @@ export interface StorageAdapter {
       offset?: number
       sortBy?: 'started_at' | 'stopped_at'
       sortOrder?: 'asc' | 'desc'
+      sessionId?: string
     }
   ): Promise<{ sessions: Session[]; total: number }>
   getAllSessions(): Promise<{ sessions: Session[]; total: number }>

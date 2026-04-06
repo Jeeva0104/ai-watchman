@@ -386,6 +386,7 @@ export class SQLiteAdapter implements StorageAdapter {
       offset?: number
       sortBy?: 'started_at' | 'stopped_at'
       sortOrder?: 'asc' | 'desc'
+      sessionId?: string
     }
   ): Promise<{ sessions: Session[]; total: number }> {
     const limit = filters?.limit ?? 1000
@@ -404,6 +405,10 @@ export class SQLiteAdapter implements StorageAdapter {
     if (filters?.status) {
       conditions.push('status = ?')
       params.push(filters.status)
+    }
+    if (filters?.sessionId?.trim()) {
+      conditions.push('session_id LIKE ?')
+      params.push(`%${filters.sessionId.trim()}%`)
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''

@@ -354,6 +354,7 @@ server.get('/api/sessions', async (
       offset?: string
       sortBy?: 'started_at' | 'stopped_at'
       sortOrder?: 'asc' | 'desc'
+      sessionId?: string
     }
   }>
 ) => {
@@ -362,6 +363,7 @@ server.get('/api/sessions', async (
   const offset = parseInt(request.query.offset || '0', 10)
   const sortBy = request.query.sortBy || 'started_at'
   const sortOrder = request.query.sortOrder || 'desc'
+  const sessionId = request.query.sessionId
 
   const result = await storage.getSessions(undefined, {
     status,
@@ -369,6 +371,7 @@ server.get('/api/sessions', async (
     offset,
     sortBy,
     sortOrder,
+    sessionId,
   })
 
   const hasMore = offset + result.sessions.length < result.total

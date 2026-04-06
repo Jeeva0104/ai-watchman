@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useAppStore } from '../../stores/app-store';
 import type { Session } from '../../types';
-import { Loader2, ChevronDown, Play, Square, ArrowUp, ArrowDown, Folder } from 'lucide-react';
+import { Loader2, ChevronDown, Play, Square, ArrowUp, ArrowDown, Folder, Search, X } from 'lucide-react';
 
 // Helper to format relative time
 function formatRelativeTime(timestamp: string): string {
@@ -185,9 +185,34 @@ export function SessionList() {
   const isLoadingActive = useAppStore((state) => state.isLoadingActiveSessions);
   const isLoadingClosed = useAppStore((state) => state.isLoadingClosedSessions);
   const isLoadingMore = useAppStore((state) => state.isLoadingMoreClosedSessions);
+  const sessionSearch = useAppStore((state) => state.sessionSearch);
   const fetchSessions = useAppStore((state) => state.fetchSessions);
   const loadMoreClosedSessions = useAppStore((state) => state.loadMoreClosedSessions);
   const selectSession = useAppStore((state) => state.selectSession);
+  const setSessionSearch = useAppStore((state) => state.setSessionSearch);
+
+  // Local search state for immediate UI feedback
+  const [localSearch, setLocalSearch] = useState(sessionSearch);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce search input (300ms)
+  useEffect(() => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    debounceTimer.current = setTimeout(() => {
+      if (localSearch !== sessionSearch) {
+        setSessionSearch(localSearch);
+      }
+    }, 300);
+
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, [localSearch, sessionSearch, setSessionSearch]);
 
   // Sort order state for each section
   const [activeSortOrder, setActiveSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -217,9 +242,30 @@ export function SessionList() {
         <span className="text-[11px] uppercase tracking-wider text-text-secondary">
           Sessions
         </span>
-        <span className="text-[11px] text-accent-cyan">
-          {totalSessions}
-        </span>
+        <div className="flex items-center gap-2">
+          {/* Search Input */}
+          <div className="flex items-center gap-1.5 bg-bg-primary border border-border rounded px-2 py-1.5 focus-within:border-accent-cyan transition-colors">
+            <Search size={10} className="text-text-secondary" />
+            <input
+              type="text"
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              placeholder="Search ID..."
+              className="bg-transparent border-none text-[10px] text-text-primary placeholder:text-text-secondary outline-none w-24"
+            />
+            {localSearch && (
+              <button
+                onClick={() => setLocalSearch('')}
+                className="text-text-secondary hover:text-text-primary transition-colors"
+              >
+                <X size={10} />
+              </button>
+            )}
+          </div>
+          <span className="text-[11px] text-accent-cyan">
+            {totalSessions}
+          </span>
+        </div>
       </div>
 
       {/* Session List */}
@@ -246,7 +292,7 @@ export function SessionList() {
               {/* Active Sessions */}
               {sortedActiveSessions.length === 0 ? (
                 <div className="text-center py-4 text-text-secondary text-xs">
-                  No active sessions
+                  {localSearch ? `No active sessions match "${localSearch}"` : 'No active sessions'}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -282,7 +328,7 @@ export function SessionList() {
               {/* Closed Sessions */}
               {sortedClosedSessions.length === 0 ? (
                 <div className="text-center py-4 text-text-secondary text-xs">
-                  No closed sessions
+                  {localSearch ? `No closed sessions match "${localSearch}"` : 'No closed sessions'}
                 </div>
               ) : (
                 <div className="space-y-2">

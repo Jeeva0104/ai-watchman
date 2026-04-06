@@ -128,6 +128,7 @@ export const api = {
     if (options?.offset) params.append('offset', options.offset.toString());
     if (options?.sortBy) params.append('sortBy', options.sortBy === 'stoppedAt' ? 'stopped_at' : 'started_at');
     if (options?.sortOrder) params.append('sortOrder', options.sortOrder);
+    if (options?.search?.trim()) params.append('sessionId', options.search.trim());
 
     const queryString = params.toString();
     const path = queryString ? `/sessions?${queryString}` : '/sessions';

@@ -33,6 +33,7 @@ export interface FetchSessionsOptions {
   offset?: number;
   sortBy?: 'startedAt' | 'stoppedAt';
   sortOrder?: 'asc' | 'desc';
+  search?: string;
 }
 
 export interface Agent {
