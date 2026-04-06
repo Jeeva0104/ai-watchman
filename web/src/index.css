@@ -1,0 +1,170 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-primary: #0a0a0f;
+  --color-bg-secondary: #12121a;
+  --color-bg-surface: #12121a;
+  --color-bg-tertiary: #1a1a24;
+  --color-bg-elevated: #1a1a24;
+  --color-border: #1e1e2e;
+  --color-text-primary: #e0e0e0;
+  --color-text-secondary: #6e6e7c;
+  --color-accent-cyan: #00f0ff;
+  --color-accent-green: #00ff88;
+  --color-accent-yellow: #ffd700;
+  --color-accent-red: #ff3366;
+  --color-accent-purple: #b829f7;
+  --color-accent-orange: #ff8800;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'JetBrains Mono', monospace;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scanline Effect */
+.scanlines {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanlines::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Animated scanline */
+.scanline-animate {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 240, 255, 0.1),
+    transparent
+  );
+  animation: scanline 4s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+/* Glow effects */
+.glow-cyan {
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3),
+              0 0 20px rgba(0, 240, 255, 0.1);
+}
+
+.glow-green {
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.3),
+              0 0 20px rgba(0, 255, 136, 0.1);
+}
+
+.glow-red {
+  box-shadow: 0 0 10px rgba(255, 51, 102, 0.3),
+              0 0 20px rgba(255, 51, 102, 0.1);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+/* Selection styling */
+::selection {
+  background-color: rgba(0, 240, 255, 0.2);
+  color: var(--color-text-primary);
+}
+
+/* Utility classes for common patterns */
+.card {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.card-hover:hover {
+  border-color: var(--color-accent-cyan);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.1);
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+.text-glow-green {
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+/* Status indicators */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.active {
+  background-color: var(--color-accent-green);
+  box-shadow: 0 0 8px var(--color-accent-green);
+}
+
+.status-dot.idle {
+  background-color: var(--color-accent-yellow);
+  box-shadow: 0 0 8px var(--color-accent-yellow);
+}
+
+.status-dot.error {
+  background-color: var(--color-accent-red);
+  box-shadow: 0 0 8px var(--color-accent-red);
+}

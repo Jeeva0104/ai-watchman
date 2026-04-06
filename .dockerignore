@@ -1,0 +1,41 @@
+# Dependencies
+**/node_modules
+
+# Build outputs
+**/dist
+**/build
+
+# Development files
+**/.env
+**/.env.*
+**/*.log
+**/.DS_Store
+
+# IDE
+**/.idea
+**/.vscode
+**/*.swp
+**/*.swo
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*
+.docker
+.dockerignore
+
+# Test coverage
+**/coverage
+**/.nyc_output
+
+# Misc
+*.md
+!README.md
+design-preview.html
+ui-mockups.html
+.claude
+handlers
+utils

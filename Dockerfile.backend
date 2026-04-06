@@ -1,0 +1,56 @@
+# Stage 1: Build
+FROM node:20-alpine AS builder
+
+# Install build dependencies for better-sqlite3
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /app
+
+# Copy package files first for better layer caching
+COPY service/package*.json ./
+
+# Install all dependencies (including devDependencies for build)
+RUN npm install
+
+# Copy source code
+COPY service/tsconfig.json ./
+COPY service/src ./src
+
+# Build TypeScript
+RUN npm run build
+
+# Prune devDependencies
+RUN npm prune --production
+
+# Stage 2: Production
+FROM node:20-alpine AS runner
+
+# Install sqlite libraries for runtime
+RUN apk add --no-cache sqlite-libs
+
+WORKDIR /app
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Copy built application
+COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
+
+# Create data directory
+RUN mkdir -p /data && chown -R nodejs:nodejs /data
+
+# Set environment
+ENV NODE_ENV=production
+ENV DATABASE_PATH=/data/watchman.db
+
+USER nodejs
+
+EXPOSE 4990
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:4990/status || exit 1
+
+CMD ["node", "dist/main.js"]

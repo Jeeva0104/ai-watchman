@@ -1,0 +1,89 @@
+groups:
+  - name: watchman_critical
+    interval: 30s
+    rules:
+      - alert: WatchmanBackendDown
+        expr: up{job="watchman-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AI-Watchman backend is down"
+          description: "The AI-Watchman backend has been unreachable for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(watchman_errors_total[5m])) / sum(rate(watchman_events_ingested_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} over 5 minutes."
+
+      - alert: IngestionStopped
+        expr: |
+          increase(watchman_events_ingested_total[10m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No events being ingested"
+          description: "No events have been ingested in the last 10 minutes."
+
+  - name: watchman_performance
+    interval: 1m
+    rules:
+      - alert: HighIngestLatency
+        expr: |
+          histogram_quantile(0.99, rate(watchman_ingest_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High event ingestion latency"
+          description: "P99 ingestion latency is {{ $value | humanize }}s."
+
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes{job="watchman-backend"} > 1073741824
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Backend using more than 1GB memory: {{ $value | humanize1024 }}B."
+
+      - alert: SlowHTTPResponse
+        expr: |
+          histogram_quantile(0.95, sum(rate(watchman_http_request_duration_seconds_bucket[5m])) by (le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow HTTP responses"
+          description: "P95 HTTP latency is {{ $value }}s."
+
+  - name: watchman_sessions
+    interval: 5m
+    rules:
+      - alert: TooManyActiveSessions
+        expr: watchman_sessions_active > 100
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of active sessions"
+          description: "{{ $value }} active sessions may indicate sessions not ending properly."
+
+  - name: watchman_tools
+    interval: 5m
+    rules:
+      - alert: ToolFailureSpike
+        expr: |
+          sum(rate(watchman_tools_calls_total{status="failure"}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tool failure spike detected"
+          description: "Tool failure rate is {{ $value | humanize }}/sec."

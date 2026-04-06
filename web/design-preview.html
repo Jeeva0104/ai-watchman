@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Watchman Design Preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-surface: #12121a;
+            --bg-elevated: #1a1a24;
+            --border: #2a2a3a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #6e6e7c;
+            --accent-cyan: #00f0ff;
+            --accent-green: #00ff88;
+            --accent-yellow: #ffd700;
+            --accent-red: #ff3366;
+            --accent-purple: #b829f7;
+            --accent-orange: #ff8800;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* Scanline effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 240, 255, 0.015) 0px,
+                rgba(0, 240, 255, 0.015) 1px,
+                transparent 1px,
+                transparent 4px
+            );
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .app {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--bg-primary);
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 24px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Content */
+        .main {
+            padding: 24px;
+            overflow: auto;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 12px 16px;
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        .col-3 { grid-column: span 3; }
+        .col-4 { grid-column: span 4; }
+        .col-6 { grid-column: span 6; }
+        .col-8 { grid-column: span 8; }
+        .col-12 { grid-column: span 12; }
+
+        /* Stats */
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .stat-change {
+            font-size: 11px;
+            color: var(--accent-green);
+            margin-top: 8px;
+        }
+
+        /* Event Feed */
+        .event-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .event-item {
+            display: grid;
+            grid-template-columns: 60px 80px 100px 1fr auto;
+            gap: 12px;
+            padding: 10px 12px;
+            background: var(--bg-elevated);
+            border-left: 3px solid transparent;
+            border-radius: 2px;
+            font-size: 12px;
+            align-items: center;
+        }
+
+        .event-item:hover {
+            background: #22222e;
+            border-left-color: var(--accent-cyan);
+        }
+
+        .event-time {
+            color: var(--text-secondary);
+            font-size: 10px;
+        }
+
+        .event-type {
+            text-transform: uppercase;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            padding: 2px 8px;
+            border-radius: 2px;
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--accent-cyan);
+            text-align: center;
+        }
+
+        .event-type.tool {
+            background: rgba(255, 136, 0, 0.1);
+            color: var(--accent-orange);
+        }
+
+        .event-type.agent {
+            background: rgba(184, 41, 247, 0.1);
+            color: var(--accent-purple);
+        }
+
+        .event-type.system {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--accent-green);
+        }
+
+        .event-type.error {
+            background: rgba(255, 51, 102, 0.1);
+            color: var(--accent-red);
+        }
+
+        .event-desc {
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .event-session {
+            color: var(--text-secondary);
+            font-size: 10px;
+        }
+
+        /* Terminal Input */
+        .command-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-top: 16px;
+        }
+
+        .prompt {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        .command-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .command-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        /* Bottom Nav */
+        .nav-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 8px;
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+        }
+
+        .nav-item {
+            padding: 8px 20px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            color: var(--text-primary);
+            background: var(--bg-elevated);
+        }
+
+        .nav-item.active {
+            color: var(--accent-cyan);
+            background: rgba(0, 240, 255, 0.1);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+        }
+
+        /* Mini Chart */
+        .sparkline {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 40px;
+        }
+
+        .spark-bar {
+            flex: 1;
+            background: var(--accent-cyan);
+            opacity: 0.6;
+            border-radius: 1px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-surface);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a3a4a;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">◈</div>
+                <span>AI-WATCHMAN</span>
+            </div>
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-indicator"></span>
+                    <span>Service Online</span>
+                </div>
+                <div class="status-item">
+                    <span>Port: 4990</span>
+                </div>
+                <div class="status-item">
+                    <span>v1.0.0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="grid">
+                <!-- Stats Row -->
+                <div class="card col-3">
+                    <div class="card-body">
+                        <div class="stat-value">2,847</div>
+                        <div class="stat-label">Events Today</div>
+                        <div class="stat-change">+12% vs yesterday</div>
+                    </div>
+                </div>
+                <div class="card col-3">
+                    <div class="card-body">
+                        <div class="stat-value" style="color: var(--accent-purple)">14</div>
+                        <div class="stat-label">Active Sessions</div>
+                        <div class="stat-change">3 new in last hour</div>
+                    </div>
+                </div>
+                <div class="card col-3">
+                    <div class="card-body">
+                        <div class="stat-value" style="color: var(--accent-orange)">156</div>
+                        <div class="stat-label">Tools Executed</div>
+                        <div class="stat-change">98% success rate</div>
+                    </div>
+                </div>
+                <div class="card col-3">
+                    <div class="card-body">
+                        <div class="sparkline">
+                            <div class="spark-bar" style="height: 30%"></div>
+                            <div class="spark-bar" style="height: 50%"></div>
+                            <div class="spark-bar" style="height: 40%"></div>
+                            <div class="spark-bar" style="height: 70%"></div>
+                            <div class="spark-bar" style="height: 60%"></div>
+                            <div class="spark-bar" style="height: 90%"></div>
+                            <div class="spark-bar" style="height: 80%"></div>
+                            <div class="spark-bar" style="height: 100%"></div>
+                        </div>
+                        <div class="stat-label" style="margin-top: 8px">Event Rate (last hour)</div>
+                    </div>
+                </div>
+
+                <!-- Live Event Feed -->
+                <div class="card col-8">
+                    <div class="card-header">
+                        <span>◉ LIVE EVENT STREAM</span>
+                        <span style="color: var(--accent-green)">● REC</span>
+                    </div>
+                    <div class="card-body" style="padding: 0">
+                        <div class="event-list">
+                            <div class="event-item">
+                                <div class="event-time">14:23:08</div>
+                                <div class="event-type">USER</div>
+                                <div class="event-session">#7a8926f3</div>
+                                <div class="event-desc">analyze codebase for security vulnerabilities</div>
+                                <div class="event-time">just now</div>
+                            </div>
+                            <div class="event-item">
+                                <div class="event-time">14:23:07</div>
+                                <div class="event-type tool">BASH</div>
+                                <div class="event-session">#7a8926f3</div>
+                                <div class="event-desc">find . -name "*.ts" -type f | head -20</div>
+                                <div class="event-time">1s ago</div>
+                            </div>
+                            <div class="event-item">
+                                <div class="event-time">14:23:05</div>
+                                <div class="event-type tool">READ</div>
+                                <div class="event-session">#7a8926f3</div>
+                                <div class="event-desc">src/config/security.ts</div>
+                                <div class="event-time">3s ago</div>
+                            </div>
+                            <div class="event-item">
+                                <div class="event-time">14:22:58</div>
+                                <div class="event-type agent">AGENT</div>
+                                <div class="event-session">#3f9a2b1c</div>
+                                <div class="event-desc">Subagent "security-reviewer" spawned</div>
+                                <div class="event-time">10s ago</div>
+                            </div>
+                            <div class="event-item">
+                                <div class="event-time">14:22:45</div>
+                                <div class="event-type system">SESSION</div>
+                                <div class="event-session">#5ed47a97</div>
+                                <div class="event-desc">Session ended - 142 events total</div>
+                                <div class="event-time">23s ago</div>
+                            </div>
+                            <div class="event-item">
+                                <div class="event-time">14:22:12</div>
+                                <div class="event-type error">ERROR</div>
+                                <div class="event-session">#9c4e8a2f</div>
+                                <div class="event-desc">Tool execution failed: timeout after 30s</div>
+                                <div class="event-time">56s ago</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sessions Panel -->
+                <div class="card col-4">
+                    <div class="card-header">
+                        <span>ACTIVE SESSIONS</span>
+                        <span>[14]</span>
+                    </div>
+                    <div class="card-body" style="padding: 0">
+                        <div class="event-list">
+                            <div class="event-item" style="grid-template-columns: 1fr auto">
+                                <div>
+                                    <div style="color: var(--accent-cyan); font-weight: 600">#7a8926f3</div>
+                                    <div style="font-size: 10px; color: var(--text-secondary)">global/project-alpha</div>
+                                </div>
+                                <div style="text-align: right">
+                                    <div style="color: var(--accent-green); font-size: 11px">● LIVE</div>
+                                    <div style="font-size: 10px; color: var(--text-secondary)">42 events</div>
+                                </div>
+                            </div>
+                            <div class="event-item" style="grid-template-columns: 1fr auto">
+                                <div>
+                                    <div style="color: var(--accent-purple); font-weight: 600">#3f9a2b1c</div>
+                                    <div style="font-size: 10px; color: var(--text-secondary)">security-review</div>
+                                </div>
+                                <div style="text-align: right">
+                                    <div style="color: var(--accent-green); font-size: 11px">● LIVE</div>
+                                    <div style="font-size: 10px; color: var(--text-secondary)">128 events</div>
+                                </div>
+                            </div>
+                            <div class="event-item" style="grid-template-columns: 1fr auto">
+                                <div>
+                                    <div style="color: var(--text-primary); font-weight: 600">#5ed47a97</div>
+                                    <div style="font-size: 10px; color: var(--text-secondary)">claude-code/main</div>
+                                </div>
+                                <div style="text-align: right">
+                                    <div style="color: var(--text-secondary); font-size: 11px">○ ENDED</div>
+                                    <div style="font-size: 10px; color: var(--text-secondary)">142 events</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Command Input -->
+                <div class="col-12">
+                    <div class="command-bar">
+                        <span class="prompt">➜</span>
+                        <input type="text" class="command-input" placeholder="Type a command or search events, sessions, tools... (try: 'filter tool=Bash' or 'session #7a8926f3')">
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="nav-bar">
+            <div class="nav-item active">Dashboard</div>
+            <div class="nav-item">Sessions</div>
+            <div class="nav-item">Tools</div>
+            <div class="nav-item">Agents</div>
+            <div class="nav-item">Logs</div>
+            <div class="nav-item">Settings</div>
+        </nav>
+    </div>
+</body>
+</html>

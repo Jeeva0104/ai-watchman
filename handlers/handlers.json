@@ -1,0 +1,6 @@
+{
+  "name": "ai-watchman",
+  "version": "1.0.0",
+  "description": "AI Watchman - Hook event observer",
+  "entry": "handlers/runner.sh"
+}

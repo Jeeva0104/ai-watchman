@@ -1,0 +1,89 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: watchman-backend-dev
+    environment:
+      - NODE_ENV=development
+      - HOST=0.0.0.0
+      - PORT=4990
+      - DATABASE_PATH=/data/watchman.db
+      - VERBOSE=true
+    volumes:
+      - ./service/src:/app/src:ro
+      - ./data:/data
+    ports:
+      - "4990:4990"
+    networks:
+      - watchman-network
+    working_dir: /app
+    command: npx tsx watch src/main.ts
+
+  frontend:
+    image: node:20-alpine
+    container_name: watchman-frontend-dev
+    environment:
+      - VITE_API_URL=http://backend:4990
+    volumes:
+      - ./web:/app
+      - frontend-modules:/app/node_modules
+    ports:
+      - "3000:3000"
+    networks:
+      - watchman-network
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - backend
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: watchman-prometheus-dev
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-dev-data:/prometheus
+    networks:
+      - watchman-network
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend
+
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: watchman-grafana-dev
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-watchman}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3001}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-dev-data:/var/lib/grafana
+    networks:
+      - watchman-network
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+
+networks:
+  watchman-network:
+    driver: bridge
+
+volumes:
+  frontend-modules:
+  prometheus-dev-data:
+  grafana-dev-data:
