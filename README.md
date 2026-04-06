@@ -121,7 +121,44 @@ make test          # Run tests
 make shell         # Open shell in backend container
 make db-shell      # Open SQLite shell
 make clean         # Remove all containers, volumes, and data
+make setup-hooks   # Generate hooks config for a project
 ```
+
+## Configure Hooks for Your Project
+
+To send Claude Code events from another project to AI Watchman:
+
+```bash
+# Generate hooks config for your project
+make setup-hooks PROJECT_SLUG=my-project
+
+# With custom API URL (if AI Watchman is on a different host)
+make setup-hooks PROJECT_SLUG=my-project API_URL=http://192.168.1.100:4990
+```
+
+Copy the generated JSON and add it to your project's `.claude/settings.json`:
+
+```json
+{
+  "env": {
+    "AI_WATCHMAN_PROJECT_SLUG": "my-project",
+    "AI_WATCHMAN_API_URL": "http://localhost:4990"
+  },
+  "hooks": {
+    "SessionStart": [...],
+    "PostToolUse": [...],
+    ...
+  }
+}
+```
+
+### How It Works
+
+```
+Claude Code Hooks → hook.sh → cli.mjs → AI Watchman API → Dashboard
+```
+
+The hook runner (`hook.sh`) is non-blocking - it backgrounds the CLI and exits in ~2-5ms, so your Claude Code session won't be delayed.
 
 ## Architecture
 

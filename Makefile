@@ -1,4 +1,4 @@
-.PHONY: help build build-dev up dev down logs clean test shell db-shell pull status monitoring-logs
+.PHONY: help build build-dev up dev down logs clean test shell db-shell pull status monitoring-logs setup-hooks
 
 # Default target
 help:
@@ -22,6 +22,9 @@ help:
 	@echo ""
 	@echo "Monitoring:"
 	@echo "  monitoring-logs View Prometheus/Grafana logs"
+	@echo ""
+	@echo "Hooks:"
+	@echo "  setup-hooks    Generate hooks config for a project"
 
 # Build production images
 build:
@@ -100,3 +103,20 @@ status:
 # View monitoring logs
 monitoring-logs:
 	docker compose logs -f prometheus grafana
+
+# Generate hooks config for a project's .claude/settings.json
+setup-hooks:
+	@if [ -z "$(PROJECT_SLUG)" ]; then \
+		echo "Usage: make setup-hooks PROJECT_SLUG=<slug> [API_URL=<url>]"; \
+		echo "Example: make setup-hooks PROJECT_SLUG=my-project API_URL=http://localhost:4990"; \
+		exit 1; \
+	fi
+	@HOOK_SCRIPT="$(PWD)/hooks/scripts/hook.sh"; \
+	API_URL="$${API_URL:-http://localhost:4990}"; \
+	sed \
+	  -e "s|__PROJECT_SLUG__|$(PROJECT_SLUG)|g" \
+	  -e "s|__HOOK_SCRIPT__|$${HOOK_SCRIPT}|g" \
+	  -e "s|__API_URL__|$${API_URL}|g" \
+	  settings.template.json
+	@echo ""
+	@echo "Copy the above JSON into your project's .claude/settings.json"
